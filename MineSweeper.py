@@ -1,25 +1,11 @@
-
-# coding: utf-8
-
-# In[87]:
-
-
 import numpy as np
 import random
-
-
-# In[835]:
-
 
 minesweeperboard = [[3, -1, 3, 2, 2],
  [-1, -1, 3, -1, -1],
  [3, 3, 3, 2, 2],
  [2, -1, 2, 0, 0],
  [2, -1, 2, 0, 0]]
-
-
-# In[848]:
-
 
 class minesweeperSolver:
     def __init__(self, dim):
@@ -247,46 +233,12 @@ class minesweeperSolver:
                 self.addVisitedCells()
                 self.inferClues()
                 
-        
-            
-    
-            
-            
-                
-    
-        
-        
-
-
-# In[849]:
-
-
 m = minesweeperSolver(5)
 
-
-# In[853]:
-
-
 m.board
-
-
-# In[851]:
-
 
 m.probability
 
-
-# In[852]:
-
-
 m.solve()
 
-
-
 m.board
-
-
-
-
-
-
