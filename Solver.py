@@ -92,7 +92,6 @@ class MinesweeperSolver:
     def addMineCell(self, cell):
         self.addVisitedCell(cell)
         if cell not in self.mines:
-            print("Flagging (%d, %d) as a mine." % (cell[0], cell[1]))
             self.board[cell[0]][cell[1]] = -1
             self.mines.append(cell)
             

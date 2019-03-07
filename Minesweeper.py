@@ -76,7 +76,7 @@ def main():
                 inferences_possible = False
 
         # redraw cover, screen, and wait clock tick
-        draw_covers(solver.visited, solver.mines)
+        draw_covers(solver.board)
         pygame.display.update()
         FPSCLOCK.tick(Constants.FPS)
 
@@ -112,16 +112,17 @@ def draw_values(field,dim):
                     textColor = Constants.RED
                 draw_text(str(val), BASICFONT, textColor, DISPLAYSURFACE, center_x, center_y)
                 
-def draw_covers(revealedBoxes, markedMines):
+def draw_covers(board):
     for row in range(Constants.DIM):
         for col in range(Constants.DIM):
-            if [row,col] not in revealedBoxes:
-                top, left = topleft_coords(row, col)
+            val = board[row][col]
+            top, left = topleft_coords(row,col)
+            if val == 9:
+                # Cell not discovered
                 pygame.draw.rect(DISPLAYSURFACE, Constants.BOXCOLOR_COV, (left, top, Constants.BOXSIZE, Constants.BOXSIZE))
-            else:
-                if [row,col] in markedMines:
-                    top, left = topleft_coords(row, col)
-                    pygame.draw.rect(DISPLAYSURFACE, Constants.MINEMARK_COV, (left, top, Constants.BOXSIZE, Constants.BOXSIZE))
+            elif val == -1:
+                # Cell discovered is flagged as a mine
+                pygame.draw.rect(DISPLAYSURFACE, Constants.MINEMARK_COV, (left, top, Constants.BOXSIZE, Constants.BOXSIZE))
 
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, True, color)
@@ -143,7 +144,9 @@ def center_coords(row, col):
 def checkGameStatus(board, solver):
     for i in solver.cells:
         x,y = i[0], i[1]
-        if board[x][y] == -1 and [x,y] not in solver.mines:
+        if board[x][y] == -1 and solver.board[x][y] != -1:
+            return False
+        if board[x][y] > 0 and solver.board[x][y] == 9:
             return False
     return True
 
