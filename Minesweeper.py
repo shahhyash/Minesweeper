@@ -2,6 +2,7 @@ import numpy as np
 import random, pygame, sys
 from pygame.locals import *
 import Constants
+import Solver
 
 def main():
     board = generate_field(Constants.DIM, Constants.MINES)
@@ -18,6 +19,9 @@ def main():
     # Set background color
     DISPLAYSURFACE.fill(Constants.BGCOLOR)
 
+    # Initialize Minesweeper Solver
+    solver = Solver.MinesweeperSolver(Constants.DIM)
+
     while True:
         check_for_escape()
 
@@ -27,9 +31,49 @@ def main():
         draw_field(Constants.DIM)
         draw_values(board, Constants.DIM)
 
-        draw_covers(None, None)
+        play_next_move = False
+        inferences_possible = False
 
-        # redraw screen, wait clock tick
+        # event handling loop
+        for event in pygame.event.get(): 
+            if event.type == QUIT or (event.type == KEYUP and event.key == K_ESCAPE):
+                terminate()
+            elif event.type == MOUSEBUTTONDOWN:
+                play_next_move = True
+
+        if play_next_move and not checkGameStatus(board, solver):
+            if not inferences_possible:
+                # Start Solving for random cell by updating probability table and picking a random cell
+                solver.updateProbability()
+                coords = solver.queryCell()
+                row, col = coords[0], coords[1]
+                solver.visitedCell(row, col, board[row][col])
+            
+            # Make inferences and deductions from the knowledge obtained by querying the previous cell
+            visitedCount = len(solver.visited)
+            cellsToVisit = solver.queryDeductions()
+            
+            # Visit all cells that are deduced to be safe
+            for cell in cellsToVisit:
+                row, col = cell[0], cell[1]
+                solver.visitedCell(row, col, board[row][col])
+            
+            cellsToVisit = solver.makeInferences()
+            
+            # Visit all cells that are inferred to be safe
+            for cell in cellsToVisit:
+                row, col = cell[0], cell[1]
+                solver.visitedCell(row, col, board[row][col])
+
+            # If deductions and inferences resulted in discovering more cells, rerun them while you keep
+            # discovering more.
+            if len(solver.visited) > visitedCount:
+                inferences_possible = True
+            else:
+                inferences_possible = False
+
+        # redraw cover, screen, and wait clock tick
+        draw_covers(solver.visited, solver.mines)
         pygame.display.update()
         FPSCLOCK.tick(Constants.FPS)
 
@@ -68,8 +112,13 @@ def draw_values(field,dim):
 def draw_covers(revealedBoxes, markedMines):
     for row in range(Constants.DIM):
         for col in range(Constants.DIM):
-            top, left = topleft_coords(row, col)
-            pygame.draw.rect(DISPLAYSURFACE, Constants.BOXCOLOR_COV, (left, top, Constants.BOXSIZE, Constants.BOXSIZE))
+            if [row,col] not in revealedBoxes:
+                top, left = topleft_coords(row, col)
+                pygame.draw.rect(DISPLAYSURFACE, Constants.BOXCOLOR_COV, (left, top, Constants.BOXSIZE, Constants.BOXSIZE))
+            else:
+                if [row,col] in markedMines:
+                    top, left = topleft_coords(row, col)
+                    pygame.draw.rect(DISPLAYSURFACE, Constants.MINEMARK_COV, (left, top, Constants.BOXSIZE, Constants.BOXSIZE))
 
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, True, color)
@@ -87,6 +136,13 @@ def center_coords(row, col):
     center_x = Constants.XMARGIN + (Constants.BOXSIZE/2) + col*(Constants.BOXSIZE + Constants.GAPSIZE)
     center_y = Constants.YMARGIN + (Constants.BOXSIZE/2) + row*(Constants.BOXSIZE + Constants.GAPSIZE)
     return center_x, center_y
+
+def checkGameStatus(board, solver):
+    for i in solver.cells:
+        x,y = i[0], i[1]
+        if board[x][y] == -1 and [x,y] not in solver.mines:
+            return False
+    return True
 
 def generate_field(dim, mines):
     field = np.zeros((dim,dim))
