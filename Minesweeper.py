@@ -5,8 +5,11 @@ import Constants
 import Solver
 
 def main():
-    board = generate_field(Constants.DIM, Constants.MINES)
-    board = place_numbers(board, Constants.DIM)
+    if Constants.USE_PREDEFINED_BOARD:
+        board = Constants.BOARD
+    else:
+        board = generate_field(Constants.DIM, Constants.MINES)
+        board = place_numbers(board, Constants.DIM)
 
     # initialize global variables & pygame module, set caption
     global FPSCLOCK, DISPLAYSURFACE, BASICFONT, RESET_SURF, RESET_RECT, SHOW_SURF, SHOW_RECT

@@ -1,7 +1,17 @@
 FPS = 30
 
-DIM=10
-MINES=10
+#  If using predefined board, make sure DIM and MINES reflect the right value
+USE_PREDEFINED_BOARD=False
+BOARD=[
+    [ 1, -1,  3, -1,  2],
+    [ 1,  1,  4, -1,  3],
+    [ 1,  1,  2, -1,  2],
+    [-1,  1,  1,  1,  1],
+    [ 1,  1,  0,  0,  0],
+]
+
+DIM=5
+MINES=5
 
 BOXSIZE = 30
 GAPSIZE = 5
