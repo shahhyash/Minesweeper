@@ -47,14 +47,14 @@ def main():
             elif event.type == MOUSEBUTTONDOWN:
                 play_next_move = True
 
-        if play_next_move and not checkGameStatus(board, solver):
+        if play_next_move and not checkGameStatus(board, solver, mines_tripped):
             if not inferences_possible:
                 # Start Solving for random cell by updating probability table and picking a random cell
                 solver.updateProbability()
                 coords = solver.queryCell()
                 row, col = coords[0], coords[1]
                 cell_val = board[row][col]
-                if cell_val == -1:
+                if cell_val == -1 and coords not in mines_tripped:
                     mines_tripped.append(coords)
                 solver.visitedCell(row, col, cell_val)
             
@@ -66,8 +66,8 @@ def main():
             for cell in cellsToVisit:
                 row, col = cell[0], cell[1]
                 cell_val = board[row][col]
-                if cell_val == -1:
-                    mines_tripped.append(coords)
+                if cell_val == -1 and cell not in mines_tripped:
+                    mines_tripped.append(cell)
                 solver.visitedCell(row, col, cell_val)
             
             cellsToVisit = solver.makeInferences()
@@ -76,8 +76,8 @@ def main():
             for cell in cellsToVisit:
                 row, col = cell[0], cell[1]
                 cell_val = board[row][col]
-                if cell_val == -1:
-                    mines_tripped.append(coords)
+                if cell_val == -1 and cell not in mines_tripped:
+                    mines_tripped.append(cell)
                 solver.visitedCell(row, col, cell_val)
 
             # If deductions and inferences resulted in discovering more cells, rerun them while you keep
@@ -153,7 +153,11 @@ def center_coords(row, col):
     center_y = Constants.YMARGIN + (Constants.BOXSIZE/2) + row*(Constants.BOXSIZE + Constants.GAPSIZE)
     return center_x, center_y
 
-def checkGameStatus(board, solver):
+def checkGameStatus(board, solver, mines_tripped):
+    print("------------------------------------------")
+    print("%d out of %d mines flagged, %d mines tripped" % (len(solver.mines), Constants.MINES, len(mines_tripped)))
+    print("flagged mines: ", solver.mines)
+    print("tripped mines: ", mines_tripped)
     for i in solver.cells:
         x,y = i[0], i[1]
         if board[x][y] == -1 and solver.board[x][y] != -1:
@@ -161,7 +165,7 @@ def checkGameStatus(board, solver):
         # If there's a mismarked mine, game isn't over yet
         if board[x][y] > -1 and solver.board[x][y] == -1:
             return False
-    print("All Mines Found Successfully!")
+    print("\n\nGAME OVER, ALL MINES FOUND SUCCESSFULLY.")
     return True
 
 def generate_field(dim, mines):

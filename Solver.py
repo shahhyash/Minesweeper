@@ -86,8 +86,10 @@ class MinesweeperSolver:
         self.board[x][y] = cell_val
         self.updateProbability()
         self.addVisitedCell([x,y])
-        if self.board[x][y] == -1:
+        if cell_val == -1:
             self.addMineCell([x,y])
+        elif [x,y] in self.mines:
+            self.mines.remove([x,y])
 
     def addMineCell(self, cell):
         self.addVisitedCell(cell)
