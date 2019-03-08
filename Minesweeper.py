@@ -25,6 +25,9 @@ def main():
     # Initialize Minesweeper Solver
     solver = Solver.MinesweeperSolver(Constants.DIM)
 
+    # Track mines stepped on
+    mines_tripped = []
+
     while True:
         check_for_escape()
 
@@ -50,7 +53,10 @@ def main():
                 solver.updateProbability()
                 coords = solver.queryCell()
                 row, col = coords[0], coords[1]
-                solver.visitedCell(row, col, board[row][col])
+                cell_val = board[row][col]
+                if cell_val == -1:
+                    mines_tripped.append(coords)
+                solver.visitedCell(row, col, cell_val)
             
             # Make inferences and deductions from the knowledge obtained by querying the previous cell
             visitedCount = len(solver.visited)
@@ -59,14 +65,20 @@ def main():
             # Visit all cells that are deduced to be safe
             for cell in cellsToVisit:
                 row, col = cell[0], cell[1]
-                solver.visitedCell(row, col, board[row][col])
+                cell_val = board[row][col]
+                if cell_val == -1:
+                    mines_tripped.append(coords)
+                solver.visitedCell(row, col, cell_val)
             
             cellsToVisit = solver.makeInferences()
             
             # Visit all cells that are inferred to be safe
             for cell in cellsToVisit:
                 row, col = cell[0], cell[1]
-                solver.visitedCell(row, col, board[row][col])
+                cell_val = board[row][col]
+                if cell_val == -1:
+                    mines_tripped.append(coords)
+                solver.visitedCell(row, col, cell_val)
 
             # If deductions and inferences resulted in discovering more cells, rerun them while you keep
             # discovering more.
@@ -76,7 +88,7 @@ def main():
                 inferences_possible = False
 
         # redraw cover, screen, and wait clock tick
-        draw_covers(solver.board)
+        draw_covers(solver.board, mines_tripped)
         pygame.display.update()
         FPSCLOCK.tick(Constants.FPS)
 
@@ -112,7 +124,7 @@ def draw_values(field,dim):
                     textColor = Constants.RED
                 draw_text(str(val), BASICFONT, textColor, DISPLAYSURFACE, center_x, center_y)
                 
-def draw_covers(board):
+def draw_covers(board, mines_tripped):
     for row in range(Constants.DIM):
         for col in range(Constants.DIM):
             val = board[row][col]
@@ -120,7 +132,7 @@ def draw_covers(board):
             if val == 9:
                 # Cell not discovered
                 pygame.draw.rect(DISPLAYSURFACE, Constants.BOXCOLOR_COV, (left, top, Constants.BOXSIZE, Constants.BOXSIZE))
-            elif val == -1:
+            elif val == -1 and [row,col] not in mines_tripped:
                 # Cell discovered is flagged as a mine
                 pygame.draw.rect(DISPLAYSURFACE, Constants.MINEMARK_COV, (left, top, Constants.BOXSIZE, Constants.BOXSIZE))
 
@@ -146,8 +158,10 @@ def checkGameStatus(board, solver):
         x,y = i[0], i[1]
         if board[x][y] == -1 and solver.board[x][y] != -1:
             return False
-        if board[x][y] > 0 and solver.board[x][y] == 9:
+        # If there's a mismarked mine, game isn't over yet
+        if board[x][y] > -1 and solver.board[x][y] == -1:
             return False
+    print("All Mines Found Successfully!")
     return True
 
 def generate_field(dim, mines):
