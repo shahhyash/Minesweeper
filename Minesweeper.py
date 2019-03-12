@@ -23,7 +23,8 @@ def main():
     DISPLAYSURFACE.fill(Constants.BGCOLOR)
 
     # Initialize Minesweeper Solver
-    solver = Solver.MinesweeperSolver(Constants.DIM)
+    solver = Solver.MinesweeperSolver(Constants.DIM, board)
+    inferences_possible = False
 
     # Track mines stepped on
     mines_tripped = []
@@ -38,7 +39,6 @@ def main():
         draw_values(board, Constants.DIM)
 
         play_next_move = False
-        inferences_possible = False
 
         # event handling loop
         for event in pygame.event.get(): 
@@ -48,12 +48,16 @@ def main():
                 play_next_move = True
 
         if play_next_move and not checkGameStatus(board, solver, mines_tripped):
+            print("-------------------------------------------------")
+            print("Additional inferences possible? %s" % inferences_possible)
             if not inferences_possible:
+                print("No way to make additional inferences, picking from probability table...")
                 # Start Solving for random cell by updating probability table and picking a random cell
                 solver.updateProbability()
                 coords = solver.queryCell()
                 row, col = coords[0], coords[1]
                 cell_val = board[row][col]
+                print("Visited cell at (%d, %d) - found value to be %d" % (row,col,cell_val))
                 if cell_val == -1 and coords not in mines_tripped:
                     mines_tripped.append(coords)
                 solver.visitedCell(row, col, cell_val)
@@ -61,24 +65,26 @@ def main():
             # Make inferences and deductions from the knowledge obtained by querying the previous cell
             visitedCount = len(solver.visited)
             cellsToVisit = solver.queryDeductions()
-            
+            print("Deduced following cells to be safe", cellsToVisit)
+
             # Visit all cells that are deduced to be safe
             for cell in cellsToVisit:
                 row, col = cell[0], cell[1]
                 cell_val = board[row][col]
+                print("Visited cell at (%d, %d) - found value to be %d" % (row,col,cell_val))
                 if cell_val == -1 and cell not in mines_tripped:
                     mines_tripped.append(cell)
                 solver.visitedCell(row, col, cell_val)
             
-            cellsToVisit = solver.makeInferences()
+            print("Making inferences...")
+            visited = solver.makeInferences()
             
             # Visit all cells that are inferred to be safe
-            for cell in cellsToVisit:
+            for cell in visited:
                 row, col = cell[0], cell[1]
                 cell_val = board[row][col]
                 if cell_val == -1 and cell not in mines_tripped:
                     mines_tripped.append(cell)
-                solver.visitedCell(row, col, cell_val)
 
             # If deductions and inferences resulted in discovering more cells, rerun them while you keep
             # discovering more.
@@ -87,6 +93,12 @@ def main():
             else:
                 inferences_possible = False
 
+            print("Additional inferences possible? %s" % inferences_possible)
+            print("-------------------------------------------------")
+            print("%d out of %d mines flagged, %d mines tripped" % (len(solver.mines), Constants.MINES, len(mines_tripped)))
+            print("flagged mines: ", solver.mines)
+            print("tripped mines: ", mines_tripped)
+            print("-------------------------------------------------")
         # redraw cover, screen, and wait clock tick
         draw_covers(solver.board, mines_tripped)
         pygame.display.update()
@@ -154,10 +166,6 @@ def center_coords(row, col):
     return center_x, center_y
 
 def checkGameStatus(board, solver, mines_tripped):
-    print("------------------------------------------")
-    print("%d out of %d mines flagged, %d mines tripped" % (len(solver.mines), Constants.MINES, len(mines_tripped)))
-    print("flagged mines: ", solver.mines)
-    print("tripped mines: ", mines_tripped)
     for i in solver.cells:
         x,y = i[0], i[1]
         if board[x][y] == -1 and solver.board[x][y] != -1:

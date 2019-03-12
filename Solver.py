@@ -2,10 +2,11 @@ import numpy as np
 import random
 
 class MinesweeperSolver:
-    def __init__(self, dim):
+    def __init__(self, dim, solved_board):
         self.cells = []
         self.dim = dim
         self.board = [[9 for i in range(self.dim)] for j in range(self.dim)]
+        self.solved_board = solved_board
         self.mines = []
         self.probability = np.array([[1 for i in range(self.dim)] for j in range(self.dim)], dtype = float)
         self.visited = []
@@ -81,6 +82,12 @@ class MinesweeperSolver:
     def addVisitedCell(self, cell):
         if cell not in self.visited:
             self.visited.append(cell)
+
+    def checkCell(self, cell):
+        row, col = cell[0], cell[1]
+        cell_val = self.solved_board[row][col]
+        print("Visited cell at (%d, %d) - found value to be %d" % (row,col,cell_val))
+        self.visitedCell(row, col, cell_val)
     
     def visitedCell(self, x, y, cell_val):
         self.board[x][y] = cell_val
@@ -116,24 +123,25 @@ class MinesweeperSolver:
             # Check if current cell is not a mine or unexplored
             if self.board[x][y] != -1 and self.board[x][y] != 9:
                 val = self.board[x][y]               
+                # if cell value is same as the number of flagged mines, then we must have already explored all mines                            
+                ucells, num_unexplored, num_clear, num_explored_mines = self.cellStatus([x,y])
                 
                 # If cell value is 0, then neighbors must be safe to visit
                 if val == 0:
                     for cell in self.getNeighborCells([x,y]):
-                        if self.unknownCell(cell):
+                        if self.unknownCell(cell) and cell not in cellsToVisit:
                             cellsToVisit.append(cell)
 
-                # if cell value is same as the number of flagged mines, then we must have already explored all mines                            
-                ucells, num_unexplored, num_clear, num_explored_mines = self.cellStatus([x,y])
-                if val == num_explored_mines:
+                elif val == num_explored_mines:
                     for cell in ucells:
-                        cellsToVisit.append(cell)
+                        if cell not in cellsToVisit:
+                            cellsToVisit.append(cell)
                         for neighbor in self.getNeighborCells(cell):
-                            if self.unknownCell(neighbor):
+                            if self.unknownCell(neighbor) and cell not in cellsToVisit:
                                 cellsToVisit.append(neighbor)
 
                 # if the number of unexplored cells is equal to value, they must all be mines, so flag them                                
-                if val == (num_neighbors-num_clear):
+                elif val == (num_neighbors-num_clear):
                     for cell in ucells:
                         self.addMineCell(cell)
                         self.updateProbability()
@@ -141,7 +149,7 @@ class MinesweeperSolver:
             
     # Make further logical inferences based on new information
     def makeInferences(self):
-        safeToVisit  = []
+        visited  = []
         inferred = 0
 
         # Nested for loop to enable comparison of each visited cell with the others
@@ -173,7 +181,8 @@ class MinesweeperSolver:
                             if common_mines == 0:
                                 inferred = 1
                                 for i in list(diff):
-                                    safeToVisit.append(i)
+                                    self.checkCell(i)
+                                    visited.append(i)
                             # If difference isn't zero, but the list of common unkown mines is equal
                             # to the neighbors not shared, then those are the mines
                             else:
@@ -192,7 +201,8 @@ class MinesweeperSolver:
                             if common_mines == 0:
                                 inferred = 1
                                 for i in list(diff):
-                                    safeToVisit.append(i)
+                                    self.checkCell(i)
+                                    visited.append(i)
                             # If difference isn't zero, but the list of common unkown mines is equal
                             # to the neighbors not shared, then those are the mines
                             else:
@@ -215,8 +225,10 @@ class MinesweeperSolver:
                                     inferred = 1
                                     if v1 < v2: 
                                         self.addMineCell(ce2)
-                                        safeToVisit.append(ce1)
+                                        self.checkCell(ce1)
+                                        visited.append(ce1)
                                     else:
                                         self.addMineCell(ce1)
-                                        safeToVisit.append(ce2)
-        return safeToVisit   
+                                        self.checkCell(ce2)
+                                        visited.append(ce2)
+        return visited   
